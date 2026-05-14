@@ -6,6 +6,10 @@ build:
       context: identity-service
       docker:
         dockerfile: src/main/docker/Dockerfile.jvm
+    - image: frontend
+      context: frontend
+      docker:
+        dockerfile: Dockerfile
   local:
     push: false
 manifests:
