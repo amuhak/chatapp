@@ -4,14 +4,12 @@ import de.mkammerer.argon2.Argon2;
 import de.mkammerer.argon2.Argon2Factory;
 import io.quarkus.redis.datasource.RedisDataSource;
 import io.quarkus.redis.datasource.value.ValueCommands;
-import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MediaType.*;
 import jakarta.ws.rs.core.Response;
 import jakarta.transaction.Transactional;
-import jdk.jfr.ContentType;
 
 import java.util.Map;
 import java.util.Optional;
@@ -56,8 +54,9 @@ public class Auth {
             String token = UUID.randomUUID()
                     .toString();
             // One day expiration for the token
-            countCommands.setex(token, 60 * 60 * 24, input.name);
-            return Response.ok(Map.of("message", "Login successful", "token", token))
+            countCommands.setex(token, 60 * 60 * 24, dbUser.userUuid);
+            return Response.ok(Map.of("message", "Login successful", "token", token, "username", dbUser.username,
+                            "userUuid", dbUser.userUuid))
                     .build();
         } else {
             return Response.status(Response.Status.UNAUTHORIZED)
@@ -95,7 +94,7 @@ public class Auth {
         u.persist();
 
         return Response.status(Response.Status.CREATED)
-                .entity(Map.of("message", "User created"))
+                .entity(Map.of("message", "User created", "userUuid", u.userUuid))
                 .build();
     }
 
@@ -110,9 +109,10 @@ public class Auth {
 
         String token = auth.substring("Bearer ".length())
                 .trim();
-        String user = countCommands.getdel(token);
-        if (user != null) {
-            logger.log(Level.INFO, user + " logged out");
+        String userUuid = countCommands.getdel(token);
+        if (userUuid != null) {
+            String username = findUsernameByUuid(userUuid);
+            logger.log(Level.INFO, (username != null ? username : userUuid) + " logged out");
             return Response.ok(Map.of("message", "Logged out"))
                     .build();
         } else {
@@ -133,14 +133,23 @@ public class Auth {
 
         String token = auth.substring("Bearer ".length())
                 .trim();
-        String user = countCommands.get(token);
-        if (user != null) {
-            return Response.ok(Map.of("valid", true, "username", user))
+        String userUuid = countCommands.get(token);
+        if (userUuid != null) {
+            String username = findUsernameByUuid(userUuid);
+            return Response.ok(Map.of("valid", true, "username",
+                            username != null ? username : userUuid, "userUuid", userUuid))
                     .build();
         } else {
             return Response.ok(Map.of("valid", false))
                     .build();
         }
+    }
+
+    private String findUsernameByUuid(String userUuid) {
+        return User.find("userUuid", userUuid)
+                .firstResultOptional()
+                .map(user -> ((User) user).username)
+                .orElse(null);
     }
 
     public static class UserInput {

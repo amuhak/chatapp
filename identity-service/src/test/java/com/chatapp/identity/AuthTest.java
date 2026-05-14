@@ -197,4 +197,28 @@ class AuthTest {
                 .statusCode(400)
                 .body("error", is("Invalid token"));
     }
+
+    // Tests that a valid token still resolves to the username even though the stored token state uses UUID
+    @Test
+    @Order(9)
+    void testValidateTokenReturnsUsername() {
+        String token = given().contentType(ContentType.JSON)
+                .body(Map.of("name", USERNAME, "password", PASSWORD))
+                .when()
+                .post("/login")
+                .then()
+                .statusCode(200)
+                .extract()
+                .path("token");
+
+        given().contentType(ContentType.JSON)
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .post("/validate")
+                .then()
+                .statusCode(200)
+                .body("valid", is(true))
+                .body("username", is(USERNAME))
+                .body("userUuid", notNullValue());
+    }
 }

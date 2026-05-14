@@ -5,9 +5,8 @@ const appElement = document.querySelector<HTMLDivElement>('#app')!;
 
 async function init() {
   const token = localStorage.getItem('token');
-  const username = localStorage.getItem('username');
 
-  if (token && username) {
+  if (token) {
     // Validate token
     try {
       const response = await fetch('/api/identity/validate', {
@@ -18,7 +17,9 @@ async function init() {
       });
       const data = await response.json();
       if (data.valid) {
-        showApp(username);
+        localStorage.setItem('username', data.username);
+        localStorage.setItem('userUuid', data.userUuid);
+        showApp(data.username, data.userUuid);
         return;
       }
     } catch (err) {
@@ -30,16 +31,17 @@ async function init() {
 }
 
 function showAuth() {
-  renderAuth(appElement, (_token, username) => {
-    showApp(username);
+  renderAuth(appElement, (_token, username, userUuid) => {
+    showApp(username, userUuid);
   });
 }
 
-function showApp(username: string) {
+function showApp(username: string, userUuid: string) {
   appElement.innerHTML = `
     <section id="center">
       <div>
         <h1>Welcome, ${username}!</h1>
+        <p>User ID: <code>${userUuid}</code></p>
         <p>You are successfully logged in to ChatApp.</p>
       </div>
       <button id="logout-btn" class="counter">Logout</button>
@@ -58,6 +60,7 @@ function showApp(username: string) {
     }
     localStorage.removeItem('token');
     localStorage.removeItem('username');
+    localStorage.removeItem('userUuid');
     showAuth();
   });
 }
