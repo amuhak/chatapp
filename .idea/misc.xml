@@ -8,6 +8,7 @@
         <option value="$PROJECT_DIR$/pom.xml" />
         <option value="$PROJECT_DIR$/key-delivery/pom.xml" />
         <option value="$PROJECT_DIR$/message-history/pom.xml" />
+        <option value="$PROJECT_DIR$/delivery-service/pom.xml" />
       </list>
     </option>
     <option name="ignoredFiles">
