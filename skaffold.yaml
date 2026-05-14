@@ -1,0 +1,17 @@
+apiVersion: skaffold/v4beta7
+kind: Config
+metadata:
+  name: ChatApp
+build:
+  artifacts:
+    - image: identity-service
+      context: identity-service
+      docker:
+        dockerfile: src/main/docker/Dockerfile.jvm
+  local:
+    push: false
+manifests:
+  rawYaml:
+    - k8s/*.yaml
+deploy:
+  kubectl: { }
