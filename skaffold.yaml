@@ -20,16 +20,3 @@ manifests:
     - k8s/*.yaml
 deploy:
   kubectl: { }
-portForward:
-  # 3. Skaffold opens ONE door: Port 8080 on your PC routes straight into NGINX
-  - resourceType: Service
-    resourceName: ingress-nginx-controller
-    namespace: ingress-nginx
-    port: 80
-    localPort: 8080
-  # Keep Postgres forwarded so you can still use your database GUI
-  - resourceType: Service
-    resourceName: postgres-service
-    namespace: default
-    port: 5432
-    localPort: 5432
