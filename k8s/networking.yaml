@@ -18,6 +18,13 @@ spec:
                 name: identity-service
                 port:
                   number: 80
+          - path: /api/delivery(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: delivery-service
+                port:
+                  number: 80
           - path: /()(.*)
             pathType: ImplementationSpecific
             backend:

@@ -21,7 +21,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class AuthTest {
 
-    private static final String USERNAME = "buzz_gatech";
+    private static final String USERNAME = "buzz";
     private static final String PASSWORD = "secure_password_1885";
 
     // Tests creating a new user with valid username/password via POST /signup

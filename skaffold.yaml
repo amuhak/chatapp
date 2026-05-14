@@ -6,6 +6,10 @@ build:
       context: identity-service
       docker:
         dockerfile: src/main/docker/Dockerfile.jvm
+    - image: delivery-service
+      context: delivery-service
+      docker:
+        dockerfile: src/main/docker/Dockerfile.jvm
     - image: frontend
       context: frontend
       docker:

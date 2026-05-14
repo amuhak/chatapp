@@ -12,6 +12,7 @@
 
     <modules>
         <module>identity-service</module>
+        <module>delivery-service</module>
         <module>common</module>
     </modules>
 
