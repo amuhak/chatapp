@@ -24,7 +24,7 @@ class AuthTest {
     private static final String USERNAME = "buzz_gatech";
     private static final String PASSWORD = "secure_password_1885";
 
-    // Tests creating a new user with valid username/password via POST /api/auth/signup
+    // Tests creating a new user with valid username/password via POST /signup
     // Expect: HTTP 201 and response message "User created"
     @Test
     @Order(1)
@@ -32,7 +32,7 @@ class AuthTest {
         given().contentType(ContentType.JSON)
                 .body(Map.of("name", USERNAME, "password", PASSWORD))
                 .when()
-                .post("/api/auth/signup")
+                .post("/signup")
                 .then()
                 .statusCode(201)
                 .body("message", is("User created"));
@@ -46,7 +46,7 @@ class AuthTest {
         given().contentType(ContentType.JSON)
                 .body(Map.of("name", USERNAME, "password", PASSWORD))
                 .when()
-                .post("/api/auth/signup")
+                .post("/signup")
                 .then()
                 .statusCode(409)
                 .body("error", is("Username already taken"));
@@ -61,7 +61,7 @@ class AuthTest {
         given().contentType(ContentType.JSON)
                 .body(body)
                 .when()
-                .post("/api/auth/signup")
+                .post("/signup")
                 .then()
                 .statusCode(400)
                 .body("error", is("Username and password must be provided"));
@@ -73,7 +73,7 @@ class AuthTest {
                 , "password", "  ")), Arguments.of(Map.of("name", "   ")));
     }
 
-    // Tests successful login with valid credentials via POST /api/auth/login
+    // Tests successful login with valid credentials via POST /login
     // Expect: HTTP 200, a non-null token field, and message "Login successful"
     @Test
     @Order(4)
@@ -81,7 +81,7 @@ class AuthTest {
         given().contentType(ContentType.JSON)
                 .body(Map.of("name", USERNAME, "password", PASSWORD))
                 .when()
-                .post("/api/auth/login")
+                .post("/login")
                 .then()
                 .statusCode(200)
                 .body("token", notNullValue())
@@ -96,7 +96,7 @@ class AuthTest {
         given().contentType(ContentType.JSON)
                 .body(Map.of("name", USERNAME, "password", "wrong_password"))
                 .when()
-                .post("/api/auth/login")
+                .post("/login")
                 .then()
                 .statusCode(401)
                 .body("error", is("Invalid username or password"));
@@ -110,7 +110,7 @@ class AuthTest {
         given().contentType(ContentType.JSON)
                 .body(Map.of("name", "unknown_user", "password", "any_password"))
                 .when()
-                .post("/api/auth/login")
+                .post("/login")
                 .then()
                 .statusCode(401)
                 .body("error", is("Invalid username or password"));
@@ -118,9 +118,9 @@ class AuthTest {
 
     // Integration flow test: login to obtain a token, logout with that token, then verify the token is invalidated
     // Steps & expectations:
-    // 1) POST /api/auth/login -> HTTP 200 and returns token
-    // 2) POST /api/auth/logout with Bearer token -> HTTP 200 and message "Logged out"
-    // 3) POST /api/auth/logout again with the same token -> HTTP 400 and error "Invalid token"
+    // 1) POST /login -> HTTP 200 and returns token
+    // 2) POST /logout with Bearer token -> HTTP 200 and message "Logged out"
+    // 3) POST /logout again with the same token -> HTTP 400 and error "Invalid token"
     @Test
     @Order(7)
     void testLoginAndLogoutFlow() {
@@ -128,7 +128,7 @@ class AuthTest {
         String token = given().contentType(ContentType.JSON)
                 .body(Map.of("name", USERNAME, "password", PASSWORD))
                 .when()
-                .post("/api/auth/login")
+                .post("/login")
                 .then()
                 .statusCode(200)
                 .extract()
@@ -138,7 +138,7 @@ class AuthTest {
         given().contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + token)
                 .when()
-                .post("/api/auth/logout")
+                .post("/logout")
                 .then()
                 .statusCode(200)
                 .body("message", is("Logged out"));
@@ -147,7 +147,7 @@ class AuthTest {
         given().contentType(ContentType.JSON)
                 .header("Authorization", "Bearer " + token)
                 .when()
-                .post("/api/auth/logout")
+                .post("/logout")
                 .then()
                 .statusCode(400)
                 .body("error", is("Invalid token"));
@@ -165,7 +165,7 @@ class AuthTest {
         // Missing header
         given().contentType(ContentType.JSON)
                 .when()
-                .post("/api/auth/logout")
+                .post("/logout")
                 .then()
                 .statusCode(400)
                 .body("error", is("Missing or malformed Authorization header"));
@@ -174,7 +174,7 @@ class AuthTest {
         given().contentType(ContentType.JSON)
                 .header("Authorization", "Basic dXNlcjpwYXNz")
                 .when()
-                .post("/api/auth/logout")
+                .post("/logout")
                 .then()
                 .statusCode(400)
                 .body("error", is("Missing or malformed Authorization header"));
@@ -183,7 +183,7 @@ class AuthTest {
         given().contentType(ContentType.JSON)
                 .header("Authorization", "Bearer")
                 .when()
-                .post("/api/auth/logout")
+                .post("/logout")
                 .then()
                 .statusCode(400)
                 .body("error", is("Missing or malformed Authorization header"));
@@ -192,7 +192,7 @@ class AuthTest {
         given().contentType(ContentType.JSON)
                 .header("Authorization", "Bearer unknown-token")
                 .when()
-                .post("/api/auth/logout")
+                .post("/logout")
                 .then()
                 .statusCode(400)
                 .body("error", is("Invalid token"));

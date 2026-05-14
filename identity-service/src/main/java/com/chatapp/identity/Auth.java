@@ -19,7 +19,7 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-@Path("/api/auth")
+@Path("/")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class Auth {
@@ -142,14 +142,6 @@ public class Auth {
                     .build();
         }
     }
-
-    @Path("/test")
-    @GET
-    public String test() {
-        return "<html><body><h1>Test Endpoint</h1><p>This is a simple test endpoint to verify the service is running"
-                + ".</p></body></html>";
-    }
-
 
     public static class UserInput {
         public String name;
