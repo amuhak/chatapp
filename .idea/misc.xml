@@ -10,6 +10,12 @@
         <option value="$PROJECT_DIR$/message-history/pom.xml" />
       </list>
     </option>
+    <option name="ignoredFiles">
+      <set>
+        <option value="$PROJECT_DIR$/key-delivery/pom.xml" />
+        <option value="$PROJECT_DIR$/message-history/pom.xml" />
+      </set>
+    </option>
   </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_25" default="true" project-jdk-name="graalvm-25" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/out" />
