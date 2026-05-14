@@ -1,60 +1,66 @@
 import './style.css'
-import typescriptLogo from './assets/typescript.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import { setupCounter } from './counter.ts'
+import { renderAuth } from './auth.ts'
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-<section id="center">
-  <div class="hero">
-    <img src="${heroImg}" class="base" width="170" height="179">
-    <img src="${typescriptLogo}" class="framework" alt="TypeScript logo"/>
-    <img src="${viteLogo}" class="vite" alt="Vite logo" />
-  </div>
-  <div>
-    <h1>Get started</h1>
-    <p>Edit <code>src/main.ts</code> and save to test <code>HMR</code></p>
-  </div>
-  <button id="counter" type="button" class="counter"></button>
-</section>
+const appElement = document.querySelector<HTMLDivElement>('#app')!;
 
-<div class="ticks"></div>
+async function init() {
+  const token = localStorage.getItem('token');
+  const username = localStorage.getItem('username');
 
-<section id="next-steps">
-  <div id="docs">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#documentation-icon"></use></svg>
-    <h2>Documentation</h2>
-    <p>Your questions, answered</p>
-    <ul>
-      <li>
-        <a href="https://vite.dev/" target="_blank">
-          <img class="logo" src="${viteLogo}" alt="" />
-          Explore Vite
-        </a>
-      </li>
-      <li>
-        <a href="https://www.typescriptlang.org" target="_blank">
-          <img class="button-icon" src="${typescriptLogo}" alt="">
-          Learn more
-        </a>
-      </li>
-    </ul>
-  </div>
-  <div id="social">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#social-icon"></use></svg>
-    <h2>Connect with us</h2>
-    <p>Join the Vite community</p>
-    <ul>
-      <li><a href="https://github.com/vitejs/vite" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#github-icon"></use></svg>GitHub</a></li>
-      <li><a href="https://chat.vite.dev/" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#discord-icon"></use></svg>Discord</a></li>
-      <li><a href="https://x.com/vite_js" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#x-icon"></use></svg>X.com</a></li>
-      <li><a href="https://bsky.app/profile/vite.dev" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#bluesky-icon"></use></svg>Bluesky</a></li>
-    </ul>
-  </div>
-</section>
+  if (token && username) {
+    // Validate token
+    try {
+      const response = await fetch('/api/identity/validate', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      if (data.valid) {
+        showApp(username);
+        return;
+      }
+    } catch (err) {
+      console.error('Failed to validate token', err);
+    }
+  }
 
-<div class="ticks"></div>
-<section id="spacer"></section>
-`
+  showAuth();
+}
 
-setupCounter(document.querySelector<HTMLButtonElement>('#counter')!)
+function showAuth() {
+  renderAuth(appElement, (_token, username) => {
+    showApp(username);
+  });
+}
+
+function showApp(username: string) {
+  appElement.innerHTML = `
+    <section id="center">
+      <div>
+        <h1>Welcome, ${username}!</h1>
+        <p>You are successfully logged in to ChatApp.</p>
+      </div>
+      <button id="logout-btn" class="counter">Logout</button>
+    </section>
+  `;
+
+  document.querySelector('#logout-btn')?.addEventListener('click', async () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      await fetch('/api/identity/logout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+    }
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    showAuth();
+  });
+}
+
+
+init();

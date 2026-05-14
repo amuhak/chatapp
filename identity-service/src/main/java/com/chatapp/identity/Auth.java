@@ -8,8 +8,10 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MediaType.*;
 import jakarta.ws.rs.core.Response;
 import jakarta.transaction.Transactional;
+import jdk.jfr.ContentType;
 
 import java.util.Map;
 import java.util.Optional;
@@ -118,6 +120,34 @@ public class Auth {
                     .entity(Map.of("error", "Invalid token"))
                     .build();
         }
+    }
+
+    @Path("/validate")
+    @POST
+    public Response validateToken(@HeaderParam("Authorization") String auth) {
+        if (auth == null || !auth.startsWith("Bearer ")) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Missing or malformed Authorization header"))
+                    .build();
+        }
+
+        String token = auth.substring("Bearer ".length())
+                .trim();
+        String user = countCommands.get(token);
+        if (user != null) {
+            return Response.ok(Map.of("valid", true, "username", user))
+                    .build();
+        } else {
+            return Response.ok(Map.of("valid", false))
+                    .build();
+        }
+    }
+
+    @Path("/test")
+    @GET
+    public String test() {
+        return "<html><body><h1>Test Endpoint</h1><p>This is a simple test endpoint to verify the service is running"
+                + ".</p></body></html>";
     }
 
 
