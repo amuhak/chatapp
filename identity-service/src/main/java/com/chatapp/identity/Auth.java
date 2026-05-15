@@ -7,7 +7,6 @@ import io.quarkus.redis.datasource.value.ValueCommands;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.MediaType.*;
 import jakarta.ws.rs.core.Response;
 import jakarta.transaction.Transactional;
 
@@ -24,12 +23,12 @@ public class Auth {
 
     private final Argon2 argon2 = Argon2Factory.create();
 
-    private final ValueCommands<String, String> countCommands;
+    private final ValueCommands<String, String> redisValues;
     private final Logger logger = Logger.getLogger(Auth.class.getName());
 
     @Inject
     public Auth(RedisDataSource ds) {
-        this.countCommands = ds.value(String.class);
+        this.redisValues = ds.value(String.class);
     }
 
     @POST
@@ -54,7 +53,7 @@ public class Auth {
             String token = UUID.randomUUID()
                     .toString();
             // One day expiration for the token
-            countCommands.setex(token, 60 * 60 * 24, dbUser.userUuid);
+            redisValues.setex(token, 60 * 60 * 24, dbUser.userUuid);
             return Response.ok(Map.of("message", "Login successful", "token", token, "username", dbUser.username,
                             "userUuid", dbUser.userUuid))
                     .build();
@@ -109,7 +108,7 @@ public class Auth {
 
         String token = auth.substring("Bearer ".length())
                 .trim();
-        String userUuid = countCommands.getdel(token);
+        String userUuid = redisValues.getdel(token);
         if (userUuid != null) {
             String username = findUsernameByUuid(userUuid);
             logger.log(Level.INFO, (username != null ? username : userUuid) + " logged out");
@@ -133,7 +132,7 @@ public class Auth {
 
         String token = auth.substring("Bearer ".length())
                 .trim();
-        String userUuid = countCommands.get(token);
+        String userUuid = redisValues.get(token);
         if (userUuid != null) {
             String username = findUsernameByUuid(userUuid);
             return Response.ok(Map.of("valid", true, "username",
