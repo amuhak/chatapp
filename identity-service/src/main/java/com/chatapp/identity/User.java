@@ -24,7 +24,7 @@ public class User extends PanacheEntity {
     @PrePersist
     void assignUserUuid() {
         if (userUuid == null || userUuid.isBlank()) {
-            userUuid = UUID.randomUUID().toString();
+            userUuid = UUID.ofEpochMillis(System.currentTimeMillis()).toString();
         }
     }
 }
