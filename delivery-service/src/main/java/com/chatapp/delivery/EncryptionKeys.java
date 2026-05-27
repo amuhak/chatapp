@@ -25,6 +25,7 @@ public class EncryptionKeys extends PanacheEntity {
     String senderKey;
 
     // auto assign uuid
+    @PrePersist
     void assignUserUuid() {
         if (uuid == null) {
             // UUIDv7 (time-ordered) for better performance in the database
