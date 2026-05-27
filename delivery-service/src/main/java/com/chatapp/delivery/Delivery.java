@@ -106,33 +106,37 @@ public class Delivery {
 
         logger.info("Received good symmetric key upload for user UUID: " + user.userUuid());
 
-        if (payload == null || payload.keys.isEmpty()) {
+        if (payload == null || payload.keys()
+                .isEmpty()) {
             logger.warning("Empty payload for symmetric key upload");
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(Map.of("error", "Payload must contain at least one key"))
                     .build();
         }
 
-        long keyCount = payload.keys.values()
+        long keyCount = payload.keys()
+                .values()
                 .stream()
                 .mapToLong(Map::size)
                 .sum();
 
-        // If sending out keys for more than 1000 people, it's probably a mistake/spam
-        if (keyCount > 100 * 1000) {
+        // If sending out keys for more than 1000 devices, it's probably a mistake/spam
+        if (keyCount > 1000) {
             logger.warning("Too many keys in symmetric key upload: " + keyCount);
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(Map.of("error", "Too many keys in payload. Please limit to 1000 users per upload."))
+                    .entity(Map.of("error", "Too many keys in payload. Please limit to 1000 devices per upload."))
                     .build();
         }
 
         // Get all the recipient devices in one query
         // We do this to prevent having to send a database query for each key
-        List<UserDevice> userDevices = UserDevice.list("deviceId = ANY(?1)", new Object[]{payload.keys.values()
+        List<UserDevice> userDevices = UserDevice.list("deviceId in ?1", payload.keys()
+                .values()
                 .stream()
                 .map(Map::keySet)
                 .flatMap(Collection::stream)
-                .distinct().toArray(String[]::new)});
+                .distinct()
+                .toList());
 
         // Create a map from device UUID to UserDevice for quick lookup
         Map<String, UserDevice> deviceUuidToUserDevice = userDevices.stream()
@@ -219,7 +223,7 @@ public class Delivery {
     }
 
     @POST
-    @Path("/symmetric/ack")
+    @Path("/ack")
     @Transactional
     public Response acknowledgeSymmetricKey(@HeaderParam("Authorization") String authorization, SymmetricKeyAck ack) {
         // Make sure that auth is good
@@ -231,7 +235,7 @@ public class Delivery {
                     .build();
         }
 
-        if (ack.deviceId == null || ack.keyUuid() == null) {
+        if (ack.deviceId() == null || ack.keyUuid() == null) {
             logger.warning("Missing deviceId or keyUuid for symmetric key ack");
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(Map.of("error", "Missing deviceId or keyUuid"))
@@ -249,11 +253,12 @@ public class Delivery {
         }
 
         EncryptionKeys key =
-                EncryptionKeys.find("uuid = ?1 and deviceToSendTo.deviceId = ?2", ack.keyUuid, ack.deviceId)
+                EncryptionKeys.find("uuid = ?1 and deviceToSendTo.deviceId = ?2", ack.keyUuid(), ack.deviceId)
                         .firstResult();
         if (key == null) {
-            logger.warning("Encryption key not found for symmetric key ack. Key UUID: " + ack.keyUuid + ", Device ID: "
-                    + ack.deviceId);
+            logger.warning(
+                    "Encryption key not found for symmetric key ack. Key UUID: " + ack.keyUuid() + ", Device ID: "
+                            + ack.deviceId);
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(Map.of("error", "Encryption key not found for device"))
                     .build();
