@@ -1,5 +1,6 @@
 package com.chatapp.delivery;
 
+import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
@@ -13,8 +14,16 @@ import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.slf4j.LoggerFactory;
 
+import jakarta.transaction.Transactional;
+
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 @Path("/")
 @Produces(MediaType.APPLICATION_JSON)
@@ -29,6 +38,7 @@ public class Delivery {
 
     @POST
     @Path("/asymmetric/upload")
+    @Transactional
     public Response uploadAsymmetricKey(@HeaderParam("Authorization") String authorization, KeyUploadPayload payload) {
         // Make sure that auth is good
         var user = auth.validateToken(authorization);
@@ -80,6 +90,111 @@ public class Delivery {
                 .build();
     }
 
+    @POST
+    @Path("/symmetric/upload")
+    @Transactional
+    public Response removeAsymmetricKey(@HeaderParam("Authorization") String authorization,
+                                        SymmetricKeyUploadPayload payload) {
+        // Make sure that auth is good
+        var user = auth.validateToken(authorization);
+        if (!user.valid()) {
+            logger.warning("Invalid token for symmetric key upload");
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("error", "Invalid token"))
+                    .build();
+        }
+
+        logger.info("Received good symmetric key upload for user UUID: " + user.userUuid());
+
+        if (payload == null || payload.keys.isEmpty()) {
+            logger.warning("Empty payload for symmetric key upload");
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Payload must contain at least one key"))
+                    .build();
+        }
+
+        long keyCount = payload.keys.values()
+                .stream()
+                .mapToLong(Map::size)
+                .sum();
+
+        // If sending out keys for more than 1000 people, it's probably a mistake/spam
+        if (keyCount > 100 * 1000) {
+            logger.warning("Too many keys in symmetric key upload: " + keyCount);
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Too many keys in payload. Please limit to 1000 users per upload."))
+                    .build();
+        }
+
+        // Get all the recipient devices in one query
+        // We do this to prevent having to send a database query for each key
+        List<UserDevice> userDevices = UserDevice.list("deviceId = ANY(?1)", new Object[]{payload.keys.values()
+                .stream()
+                .map(Map::keySet)
+                .flatMap(Collection::stream)
+                .distinct().toArray(String[]::new)});
+
+        // Create a map from device UUID to UserDevice for quick lookup
+        Map<String, UserDevice> deviceUuidToUserDevice = userDevices.stream()
+                .collect(Collectors.toMap(device -> device.deviceId,    // Key
+                        device -> device,                               // Value
+                        (existing, _) -> existing,            // Deal with duplicates
+                        HashMap::new                                               // Make hashmap
+                ));
+
+        // Get a list of all the encryption keys to add to the db
+        List<EncryptionKeys> keys = payload.keys() // Map<recipient_uuid, Map<device_uuid, encrypted_sender_key>>
+                .entrySet() // Stream<Map.Entry<recipient_uuid, Map<device_uuid, encrypted_sender_key>>>
+                .stream()
+                .flatMap((map) -> {
+                    var recipientUuid = map.getKey();
+                    var deviceMap = map.getValue();
+                    return deviceMap.entrySet()
+                            .stream()
+                            .map((deviceUuidToKeyEntry) -> {
+                                String deviceUuid = deviceUuidToKeyEntry.getKey();
+                                String encryptedSenderKey = deviceUuidToKeyEntry.getValue();
+                                var key = new EncryptionKeys();
+
+                                // Look up the recipient device in the database
+                                UserDevice recipientDevice = deviceUuidToUserDevice.get(deviceUuid);
+                                if (recipientDevice == null) {
+                                    logger.warning("Recipient device not found for UUID: " + deviceUuid);
+                                    return null; // Skip this key, but keep processing the rest
+                                }
+
+                                // Sanity check
+                                if (!recipientDevice.userUUID.equals(recipientUuid)) {
+                                    logger.warning("Recipient device UUID " + deviceUuid
+                                            + " does not match recipient user UUID " + recipientUuid);
+                                    return null; // Skip this key, but keep processing the rest
+                                }
+
+                                key.deviceToSendTo = recipientDevice;
+                                key.keySenderUserUuid = user.userUuid();
+                                key.senderKey = encryptedSenderKey;
+                                // Return the key to be added to the database
+                                return key;
+                            });
+                })
+                .filter(Objects::nonNull) // Remove any keys that had missing devices
+                .toList();
+
+
+        EncryptionKeys.persist(keys);
+
+        return Response.ok(Map.of("message", "Symmetric keys uploaded successfully"))
+                .build();
+    }
+
     public record KeyUploadPayload(String deviceName, String publicIdentityKey, String publicSignKey) {
+    }
+
+
+    /**
+     * JSON in the format of:
+     * {"recipient_uuid": {"device_uuid": "encrypted_sender_key"}, ...}, ...}
+     */
+    public record SymmetricKeyUploadPayload(Map<String, Map<String, String>> keys) {
     }
 }
