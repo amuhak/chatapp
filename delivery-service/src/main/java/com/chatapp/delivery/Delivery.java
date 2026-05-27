@@ -187,14 +187,97 @@ public class Delivery {
                 .build();
     }
 
-    public record KeyUploadPayload(String deviceName, String publicIdentityKey, String publicSignKey) {
+    @GET
+    @Path("/symmetric/fetch")
+    public Response fetchSymmetricKeys(@HeaderParam("Authorization") String authorization,
+                                       @QueryParam("deviceId") String deviceId) {
+        // Make sure that auth is good
+        var user = auth.validateToken(authorization);
+        if (!user.valid()) {
+            logger.warning("Invalid token for symmetric key fetch");
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("error", "Invalid token"))
+                    .build();
+        }
+
+        UserDevice device = UserDevice.find("deviceId = ?1 and userUUID = ?2", deviceId, user.userUuid())
+                .firstResult();
+        if (device == null) {
+            logger.warning("Device not found for symmetric key fetch. Device ID: " + deviceId + ", User UUID: "
+                    + user.userUuid());
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Device not found for user"))
+                    .build();
+        }
+
+        logger.info("Received good symmetric key fetch for device UUID: " + deviceId);
+        // Fetch the encryption keys for the device from the database
+        var keys = EncryptionKeys.list("deviceToSendTo.deviceId", deviceId);
+        // Hopefully they don't have a billion keys.
+        return Response.ok(keys)
+                .build();
     }
 
+    @POST
+    @Path("/symmetric/ack")
+    @Transactional
+    public Response acknowledgeSymmetricKey(@HeaderParam("Authorization") String authorization, SymmetricKeyAck ack) {
+        // Make sure that auth is good
+        var user = auth.validateToken(authorization);
+        if (!user.valid()) {
+            logger.warning("Invalid token for symmetric key ack");
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("error", "Invalid token"))
+                    .build();
+        }
+
+        if (ack.deviceId == null || ack.keyUuid() == null) {
+            logger.warning("Missing deviceId or keyUuid for symmetric key ack");
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Missing deviceId or keyUuid"))
+                    .build();
+        }
+
+        UserDevice device = UserDevice.find("deviceId = ?1 and userUUID = ?2", ack.deviceId, user.userUuid())
+                .firstResult();
+        if (device == null) {
+            logger.warning("Device not found for symmetric key ack. Device ID: " + ack.deviceId + ", User UUID: "
+                    + user.userUuid());
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Device not found for user"))
+                    .build();
+        }
+
+        EncryptionKeys key =
+                EncryptionKeys.find("uuid = ?1 and deviceToSendTo.deviceId = ?2", ack.keyUuid, ack.deviceId)
+                        .firstResult();
+        if (key == null) {
+            logger.warning("Encryption key not found for symmetric key ack. Key UUID: " + ack.keyUuid + ", Device ID: "
+                    + ack.deviceId);
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Encryption key not found for device"))
+                    .build();
+        }
+
+        // If we got here, then the ack is valid. We can delete the key from the database.
+        key.delete();
+        logger.info("Acknowledged symmetric key with UUID: " + ack.keyUuid + " for device ID: " + ack.deviceId);
+        return Response.ok(Map.of("message", "Symmetric key acknowledged successfully"))
+                .build();
+
+    }
+
+
+    public record KeyUploadPayload(String deviceName, String publicIdentityKey, String publicSignKey) {
+    }
 
     /**
      * JSON in the format of:
      * {"recipient_uuid": {"device_uuid": "encrypted_sender_key"}, ...}, ...}
      */
     public record SymmetricKeyUploadPayload(Map<String, Map<String, String>> keys) {
+    }
+
+    public record SymmetricKeyAck(String deviceId, String keyUuid) {
     }
 }
