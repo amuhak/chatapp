@@ -13,16 +13,16 @@ public class EncryptionKeys extends PanacheEntity {
     @ManyToOne
     @JoinColumn(name = "device_id")
     @OnDelete(action = OnDeleteAction.CASCADE)
-    UserDevice deviceToSendTo;
+    public UserDevice deviceToSendTo;
 
     @Column(unique = true, nullable = false, updatable = false)
-    String uuid;
+    public String uuid;
 
     @Column(nullable = false, updatable = false)
-    String keySenderUserUuid;
+    public String keySenderUserUuid;
 
     @Column(columnDefinition = "TEXT", nullable = false)
-    String senderKey;
+    public String senderKey;
 
     // auto assign uuid
     @PrePersist
