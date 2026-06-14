@@ -93,7 +93,7 @@ public class Delivery {
     @POST
     @Path("/symmetric/upload")
     @Transactional
-    public Response removeAsymmetricKey(@HeaderParam("Authorization") String authorization,
+    public Response uploadSymmetricKeys(@HeaderParam("Authorization") String authorization,
                                         SymmetricKeyUploadPayload payload) {
         // Make sure that auth is good
         var user = auth.validateToken(authorization);
@@ -242,10 +242,10 @@ public class Delivery {
                     .build();
         }
 
-        UserDevice device = UserDevice.find("deviceId = ?1 and userUUID = ?2", ack.deviceId, user.userUuid())
+        UserDevice device = UserDevice.find("deviceId = ?1 and userUUID = ?2", ack.deviceId(), user.userUuid())
                 .firstResult();
         if (device == null) {
-            logger.warning("Device not found for symmetric key ack. Device ID: " + ack.deviceId + ", User UUID: "
+            logger.warning("Device not found for symmetric key ack. Device ID: " + ack.deviceId() + ", User UUID: "
                     + user.userUuid());
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(Map.of("error", "Device not found for user"))
@@ -253,12 +253,12 @@ public class Delivery {
         }
 
         EncryptionKeys key =
-                EncryptionKeys.find("uuid = ?1 and deviceToSendTo.deviceId = ?2", ack.keyUuid(), ack.deviceId)
+                EncryptionKeys.find("uuid = ?1 and deviceToSendTo.deviceId = ?2", ack.keyUuid(), ack.deviceId())
                         .firstResult();
         if (key == null) {
             logger.warning(
                     "Encryption key not found for symmetric key ack. Key UUID: " + ack.keyUuid() + ", Device ID: "
-                            + ack.deviceId);
+                            + ack.deviceId());
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(Map.of("error", "Encryption key not found for device"))
                     .build();
@@ -266,7 +266,7 @@ public class Delivery {
 
         // If we got here, then the ack is valid. We can delete the key from the database.
         key.delete();
-        logger.info("Acknowledged symmetric key with UUID: " + ack.keyUuid + " for device ID: " + ack.deviceId);
+        logger.info("Acknowledged symmetric key with UUID: " + ack.keyUuid() + " for device ID: " + ack.deviceId());
         return Response.ok(Map.of("message", "Symmetric key acknowledged successfully"))
                 .build();
 

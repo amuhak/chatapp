@@ -6,10 +6,26 @@ build:
       context: identity-service
       docker:
         dockerfile: src/main/docker/Dockerfile.jvm
+      hooks:
+        before:
+          - host:
+              command: ..\mvnw.cmd package -DskipTests
+              os: [windows]
+          - host:
+              command: ../mvnw package -DskipTests
+              os: [linux, darwin]
     - image: delivery-service
       context: delivery-service
       docker:
         dockerfile: src/main/docker/Dockerfile.jvm
+      hooks:
+        before:
+          - host:
+              command: ..\mvnw.cmd package -DskipTests
+              os: [windows]
+          - host:
+              command: ../mvnw package -DskipTests
+              os: [linux, darwin]
     - image: frontend
       context: frontend
       docker:
