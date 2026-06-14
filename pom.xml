@@ -13,6 +13,7 @@
     <modules>
         <module>identity-service</module>
         <module>delivery-service</module>
+        <module>message-service</module>
         <module>common</module>
     </modules>
 

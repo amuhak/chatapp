@@ -22,6 +22,16 @@ build:
             os: ["windows"]
           - command: ["sh", "-c", "./mvnw package -DskipTests"]
             os: ["linux", "darwin"]
+    - image: message-service
+      context: message-service
+      docker:
+        dockerfile: src/main/docker/Dockerfile.jvm
+      hooks:
+        before:
+          - command: ["cmd", "/c", "mvnw.cmd", "package", "-DskipTests"]
+            os: ["windows"]
+          - command: ["sh", "-c", "./mvnw package -DskipTests"]
+            os: ["linux", "darwin"]
     - image: frontend
       context: frontend
       docker:

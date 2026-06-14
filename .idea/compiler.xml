@@ -9,6 +9,7 @@
         <module name="delivery-service" />
         <module name="common" />
         <module name="identity-service" />
+        <module name="message-service" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
@@ -22,6 +23,7 @@
       <module name="identity-service" options="-parameters" />
       <module name="key-delivery" options="-parameters" />
       <module name="message-history" options="-parameters" />
+      <module name="message-service" options="-parameters" />
     </option>
   </component>
 </project>

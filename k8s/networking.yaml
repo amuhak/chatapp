@@ -25,6 +25,13 @@ spec:
                 name: delivery-service
                 port:
                   number: 80
+          - path: /api/message(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: message-service
+                port:
+                  number: 80
           - path: /()(.*)
             pathType: ImplementationSpecific
             backend:
