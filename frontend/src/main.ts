@@ -334,13 +334,24 @@ function showApp(username: string, userUuid: string) {
   async function fetchMyDevices() {
     const myDevicesList = document.getElementById('my-devices-list')!;
     try {
-      const response = await fetch(`/api/delivery/asymmetric/fetch?UUID=${userUuid}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const response = await fetch('/api/delivery/asymmetric/fetch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ UUIDs: [userUuid] })
       });
       if (!response.ok) throw new Error('Failed to fetch devices');
       const devices = await response.json();
+      const deviceMap = devices[userUuid] || {};
+      const deviceList = Object.entries(deviceMap).map(([deviceId, publicIdentityKey]) => ({
+        deviceId,
+        publicIdentityKey,
+        deviceName: `Device (${deviceId.substring(0, 8)})`
+      }));
 
-      myDevicesList.innerHTML = devices.map((d: any) => `
+      myDevicesList.innerHTML = deviceList.map((d: any) => `
         <tr class="${d.deviceId === localStorage.getItem('deviceId') ? 'active-row' : ''}">
           <td>
             <strong>${escapeHtml(d.deviceName)}</strong>
@@ -374,19 +385,30 @@ function showApp(username: string, userUuid: string) {
     uploadSymmetricBtn.disabled = true;
 
     try {
-      const response = await fetch(`/api/delivery/asymmetric/fetch?UUID=${rUuid}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const response = await fetch('/api/delivery/asymmetric/fetch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ UUIDs: [rUuid] })
       });
       if (!response.ok) throw new Error('Recipient details not found');
       const devices = await response.json();
-      recipientDevicesCache = devices;
+      const deviceMap = devices[rUuid] || {};
+      const deviceList = Object.entries(deviceMap).map(([deviceId, publicIdentityKey]) => ({
+        deviceId,
+        publicIdentityKey,
+        deviceName: `Device (${deviceId.substring(0, 8)})`
+      }));
+      recipientDevicesCache = deviceList;
 
-      if (devices.length === 0) {
+      if (deviceList.length === 0) {
         recipientDevicesList.innerHTML = `<tr><td colspan="3" class="error-text">No active devices found for this User UUID. They must log in at least once to create key pairs.</td></tr>`;
         return;
       }
 
-      recipientDevicesList.innerHTML = devices.map((d: any) => `
+      recipientDevicesList.innerHTML = deviceList.map((d: any) => `
         <tr>
           <td><strong>${escapeHtml(d.deviceName)}</strong></td>
           <td><code class="selectable">${escapeHtml(d.deviceId)}</code></td>

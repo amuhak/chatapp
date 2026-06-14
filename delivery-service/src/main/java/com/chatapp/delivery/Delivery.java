@@ -70,10 +70,10 @@ public class Delivery {
                 .build();
     }
 
-    @GET
+    @POST
     @Path("/asymmetric/fetch")
     public Response fetchAsymmetricKeys(@HeaderParam("Authorization") String authorization,
-                                        @QueryParam("UUID") String UserUuid) {
+                                        fetchAsymmetricKeysPayload payload) {
         // Make sure that auth is good
         var user = auth.validateToken(authorization);
         if (!user.valid()) {
@@ -82,11 +82,35 @@ public class Delivery {
                     .entity(Map.of("error", "Invalid token"))
                     .build();
         }
-        logger.info("Received good asymmetric key fetch for user UUID: " + UserUuid);
+        if (payload == null || payload.UUIDs() == null || payload.UUIDs()
+                .isEmpty()) {
+            logger.warning("Empty payload for asymmetric key fetch");
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Payload must contain at least one UUID"))
+                    .build();
+        }
+
+        if (payload.UUIDs()
+                .size() > 100) {
+            logger.warning("Too many UUIDs in asymmetric key fetch: " + payload.UUIDs()
+                    .size());
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "Too many UUIDs in payload. Please limit to 100 UUIDs per fetch."))
+                    .build();
+        }
+
+        logger.info("Received good asymmetric key fetch for: " + payload.UUIDs()
+                .size() + " UUIDs");
         // Fetch the device info and keys from the database
-        var devices = UserDevice.list("userUUID", UserUuid);
-        // Hopefully they don't have a billion devices.
-        return Response.ok(devices)
+        List<UserDevice> devices = UserDevice.list("userUUID in ?1", payload.UUIDs());
+
+        Map<String, Map<String, String>> response; // {"uuid": {"device_uuid": "public_key", ...}, ...}
+
+        response = devices.stream()
+                .collect(Collectors.groupingBy(device -> device.userUUID, Collectors.toMap(device -> device.deviceId,
+                        device -> device.publicIdentityKey)));
+
+        return Response.ok(response)
                 .build();
     }
 
@@ -272,6 +296,8 @@ public class Delivery {
 
     }
 
+    public record fetchAsymmetricKeysPayload(List<String> UUIDs) {
+    }
 
     public record KeyUploadPayload(String deviceName, String publicIdentityKey, String publicSignKey) {
     }
