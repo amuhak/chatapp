@@ -31,7 +31,7 @@ build:
 manifests:
   rawYaml:
     # 1. Skaffold automatically installs the NGINX engine into the cluster
-    - https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+    - k8s/nginx-ingress-deploy.yml
     # 2. Skaffold applies your database, Java app, and the Ingress rules we just wrote
     - k8s/*.yaml
 deploy:
