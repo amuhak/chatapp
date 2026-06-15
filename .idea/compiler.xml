@@ -7,12 +7,12 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="delivery-service" />
-        <module name="common" />
         <module name="identity-service" />
         <module name="message-service" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
+      <module name="common" target="25" />
       <module name="key-delivery" target="21" />
       <module name="message-history" target="21" />
     </bytecodeTargetLevel>

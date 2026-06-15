@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class Delivery {
-    private static final org.slf4j.Logger log = LoggerFactory.getLogger(Delivery.class);
     @RestClient
     @Inject
     Auth auth;

@@ -58,6 +58,7 @@ possesses none of the "keys" required to open them.
             * `recipient_uuids`: A list of recipient UUIDs.
             * `encrypted_payload`: The actual encrypted message content.
             * `timestamp`: The time the message was sent (UNIX epoch).
+            * `sender_device_uuid`: The UUID of the sender's device.
     * `POST /message/ack`: Clients send an ACK after successfully decrypting a message. The server deletes the
       corresponding
       message from PostgreSQL to prevent re-delivery.
