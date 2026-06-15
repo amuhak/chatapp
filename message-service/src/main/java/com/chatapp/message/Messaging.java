@@ -96,6 +96,29 @@ public class Messaging {
                         .build();
             }
 
+
+            long timestamp;
+            try {
+                timestamp = Long.parseLong(payload.timestamp());
+            } catch (NumberFormatException e) {
+                logger.warning("Invalid timestamp format: " + payload.timestamp());
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("error", "Invalid timestamp format"))
+                        .build();
+            }
+
+            long timeNow = System.currentTimeMillis();
+            long timeDiff = timeNow - timestamp; // negative if timestamp is in the future, positive if in the past
+            if (timeDiff < -2000
+                    || timeDiff > 60000) { // allow up to 2 seconds in the future and up to 1 minute in the past
+                logger.warning("Timestamp is too far from current time: " + payload.timestamp());
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("error",
+                                "Timestamp is too far from current time. time provided: " + payload.timestamp()
+                                        + ", current time: " + timeNow + ", timeDiffMillis:" + timeDiff))
+                        .build();
+            }
+
             for (String deviceUuid : devicesMap.keySet()) {
                 Message msg = new Message();
                 msg.messageData = messageData;
@@ -103,7 +126,7 @@ public class Messaging {
                 msg.sender = user.userUuid();
                 msg.recipient = recipientUuid;
                 msg.recipientDevice = deviceUuid;
-                msg.timestamp = Long.parseLong(payload.timestamp());
+                msg.timestamp = timestamp;
                 messages.add(msg);
             }
         }
@@ -146,7 +169,8 @@ public class Messaging {
 
         // Validate that the authenticated user is the actual recipient of this message
         if (!message.recipient.equals(user.userUuid())) {
-            logger.warning("User " + user.userUuid() + " is not authorized to acknowledge message " + payload.message_uuid());
+            logger.warning(
+                    "User " + user.userUuid() + " is not authorized to acknowledge message " + payload.message_uuid());
             return Response.status(Response.Status.FORBIDDEN)
                     .entity(Map.of("error", "You are not authorized to acknowledge this message"))
                     .build();
@@ -175,7 +199,7 @@ public class Messaging {
     @GET
     @Path("/fetch")
     public Response fetchMessages(@HeaderParam("Authorization") String authorization,
-                                 @QueryParam("deviceId") String deviceId) {
+                                  @QueryParam("deviceId") String deviceId) {
         var user = auth.validateToken(authorization);
         if (!user.valid()) {
             logger.warning("Invalid token for message fetch");
@@ -193,14 +217,9 @@ public class Messaging {
 
         List<Map<String, Object>> responseMessages = new ArrayList<>();
         for (Message msg : messages) {
-            responseMessages.add(Map.of(
-                    "message_uuid", msg.messageUuid,
-                    "chat_uuid", msg.chatUuid,
-                    "sender", msg.sender,
-                    "recipient_device", msg.recipientDevice,
-                    "timestamp", msg.timestamp,
-                    "encrypted_payload", msg.messageData.encryptedPayload
-            ));
+            responseMessages.add(Map.of("message_uuid", msg.messageUuid, "chat_uuid", msg.chatUuid, "sender",
+                    msg.sender, "recipient_device", msg.recipientDevice, "timestamp", msg.timestamp,
+                    "encrypted_payload", msg.messageData.encryptedPayload));
         }
 
         return Response.ok(Map.of("messages", responseMessages))
