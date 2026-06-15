@@ -37,8 +37,6 @@ possesses none of the "keys" required to open them.
         * Input: list of UUIDs in body. Output: `{"uuid": {"device_uuid": "public_key", ...}, ...}`
     * `POST /symmetric/upload`: Clients upload the encrypted sender keys (one per recipient device). In one large JSON.
         * Send a JSON `{"recipient_uuid": {"device_uuid": "encrypted_sender_key"}, ...}}`
-    * `WebSocket Endpoint /ws/keys`: Clients subscribe to this endpoint to receive real-time updates of encrypted sender
-      keys.
     * `GET /symmetric/fetch?deviceId=<deviceId>`: Clients fetch any pending encrypted sender keys for their device.
     * `POST /ack`: Clients send an ACK after successfully decrypting a sender key. The server deletes the corresponding
       encrypted sender key from PostgreSQL to prevent re-delivery.
@@ -63,7 +61,5 @@ possesses none of the "keys" required to open them.
       corresponding
       message from PostgreSQL to prevent re-delivery.
     * `GET /message/fetch` Clients fetch all pending messages for their device.
-    * `WebSocket Endpoint /ws/messages`: Clients subscribe to this endpoint to receive real-time notifications of new
-      messages.
 
 ---
