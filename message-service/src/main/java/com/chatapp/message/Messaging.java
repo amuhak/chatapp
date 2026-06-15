@@ -118,5 +118,55 @@ public class Messaging {
                                  String encrypted_payload, String timestamp, String sender_device_uuid) {
     }
 
+    @POST
+    @Path("/message/ack")
+    @Transactional
+    public Response acknowledgeMessage(@HeaderParam("Authorization") String authorization, AcknowledgePayload payload) {
+        var user = auth.validateToken(authorization);
+        if (!user.valid()) {
+            logger.warning("Invalid token for message acknowledgment");
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("error", "Invalid token"))
+                    .build();
+        }
 
+        // Find the message by message_uuid and recipientDevice
+        Message message =
+                Message.find("messageUuid = ?1 and recipientDevice = ?2", payload.message_uuid(),
+                                payload.recipientDeviceUuid())
+                        .firstResult();
+        if (message == null) {
+            logger.warning("Message not found for acknowledgment: " + payload.message_uuid());
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", "Message not found for acknowledgment"))
+                    .build();
+        }
+
+        // Validate that the authenticated user is the actual recipient of this message
+        if (!message.recipient.equals(user.userUuid())) {
+            logger.warning("User " + user.userUuid() + " is not authorized to acknowledge message " + payload.message_uuid());
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity(Map.of("error", "You are not authorized to acknowledge this message"))
+                    .build();
+        }
+
+        MessageData messageData = message.messageData;
+
+        // Delete the message to acknowledge receipt
+        message.delete();
+
+        // Flush the deletion to the database session before executing the count query
+        Message.flush();
+
+        // Cascade delete manually
+        if (Message.count("messageData = ?1", messageData) == 0) {
+            messageData.delete();
+        }
+
+        return Response.ok(Map.of("message", "Message acknowledged successfully"))
+                .build();
+    }
+
+    public record AcknowledgePayload(String message_uuid, String recipientDeviceUuid) {
+    }
 }
