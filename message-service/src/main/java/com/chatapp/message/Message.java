@@ -18,7 +18,7 @@ public class Message extends PanacheEntity {
     @Column(unique = true, nullable = false, updatable = false)
     public String messageUuid;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "message_data_id", nullable = false, updatable = false)
     public MessageData messageData;
 

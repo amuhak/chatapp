@@ -3,10 +3,12 @@ package com.chatapp.message;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -36,7 +38,7 @@ public class Messaging {
     private final Logger logger = Logger.getLogger(Messaging.class.getName());
 
     @POST
-    @Path("/message")
+    @Path("/")
     @Transactional
     public Response message(@HeaderParam("Authorization") String authorization, MessagePayload payload) {
         var user = auth.validateToken(authorization);
@@ -119,7 +121,7 @@ public class Messaging {
     }
 
     @POST
-    @Path("/message/ack")
+    @Path("/ack")
     @Transactional
     public Response acknowledgeMessage(@HeaderParam("Authorization") String authorization, AcknowledgePayload payload) {
         var user = auth.validateToken(authorization);
@@ -168,5 +170,40 @@ public class Messaging {
     }
 
     public record AcknowledgePayload(String message_uuid, String recipientDeviceUuid) {
+    }
+
+    @GET
+    @Path("/fetch")
+    public Response fetchMessages(@HeaderParam("Authorization") String authorization,
+                                 @QueryParam("deviceId") String deviceId) {
+        var user = auth.validateToken(authorization);
+        if (!user.valid()) {
+            logger.warning("Invalid token for message fetch");
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("error", "Invalid token"))
+                    .build();
+        }
+
+        List<Message> messages;
+        if (deviceId != null && !deviceId.isBlank()) {
+            messages = Message.list("recipient = ?1 and recipientDevice = ?2", user.userUuid(), deviceId);
+        } else {
+            messages = Message.list("recipient = ?1", user.userUuid());
+        }
+
+        List<Map<String, Object>> responseMessages = new ArrayList<>();
+        for (Message msg : messages) {
+            responseMessages.add(Map.of(
+                    "message_uuid", msg.messageUuid,
+                    "chat_uuid", msg.chatUuid,
+                    "sender", msg.sender,
+                    "recipient_device", msg.recipientDevice,
+                    "timestamp", msg.timestamp,
+                    "encrypted_payload", msg.messageData.encryptedPayload
+            ));
+        }
+
+        return Response.ok(Map.of("messages", responseMessages))
+                .build();
     }
 }
