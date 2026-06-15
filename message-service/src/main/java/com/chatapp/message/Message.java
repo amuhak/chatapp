@@ -29,6 +29,9 @@ public class Message extends PanacheEntity {
     public String recipient;
 
     @Column(nullable = false, updatable = false)
+    public String recipientDevice;
+
+    @Column(nullable = false, updatable = false)
     public String sender;
 
     @Column(nullable = false, updatable = false)

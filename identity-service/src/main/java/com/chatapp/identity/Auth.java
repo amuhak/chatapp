@@ -10,11 +10,14 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.transaction.Transactional;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 @Path("/")
 @Produces(MediaType.APPLICATION_JSON)
@@ -149,6 +152,31 @@ public class Auth {
                 .firstResultOptional()
                 .map(user -> ((User) user).username)
                 .orElse(null);
+    }
+
+    @GET
+    @Path("/user/{uuid}/exists")
+    public Response checkUserExists(@PathParam("uuid") String uuid) {
+        boolean exists = User.find("userUuid", uuid)
+                .firstResultOptional()
+                .isPresent();
+        return Response.ok(Map.of("exists", exists))
+                .build();
+    }
+
+    @POST
+    @Path("/users/exist")
+    public Response checkUsersExist(List<String> uuids) {
+        if (uuids == null || uuids.isEmpty()) {
+            return Response.ok(Map.of()).build();
+        }
+        List<User> existingUsers = User.list("userUuid in ?1", uuids);
+        Set<String> existingUuids = existingUsers.stream()
+                .map(user -> user.userUuid)
+                .collect(Collectors.toSet());
+        Map<String, Boolean> result = uuids.stream()
+                .collect(Collectors.toMap(uuid -> uuid, existingUuids::contains));
+        return Response.ok(result).build();
     }
 
     public static class UserInput {
