@@ -8,30 +8,30 @@ build:
         dockerfile: src/main/docker/Dockerfile.jvm
       hooks:
         before:
-          - command: ["cmd", "/c", "mvnw.cmd", "package", "-pl", "identity-service", "-am", "-DskipTests"]
-            os: ["windows"]
-          - command: ["sh", "-c", "./mvnw package -pl identity-service -am -DskipTests"]
-            os: ["linux", "darwin"]
+          - command: ["../mvnw", "package", "-pl", "identity-service", "-am", "-DskipTests"]
+            os: [darwin, linux]
+          - command: [".\\mvnw.cmd", "package", "-pl", "identity-service", "-am", "-DskipTests"]
+            os: [windows]
     - image: delivery-service
       context: delivery-service
       docker:
         dockerfile: src/main/docker/Dockerfile.jvm
       hooks:
         before:
-          - command: ["cmd", "/c", "mvnw.cmd", "package", "-pl", "delivery-service", "-am", "-DskipTests"]
-            os: ["windows"]
-          - command: ["sh", "-c", "./mvnw package -pl delivery-service -am -DskipTests"]
-            os: ["linux", "darwin"]
+          - command: ["../mvnw", "package", "-pl", "delivery-service", "-am", "-DskipTests"]
+            os: [darwin, linux]
+          - command: [".\\mvnw.cmd", "package", "-pl", "delivery-service", "-am", "-DskipTests"]
+            os: [windows]
     - image: message-service
       context: message-service
       docker:
         dockerfile: src/main/docker/Dockerfile.jvm
       hooks:
         before:
-          - command: ["cmd", "/c", "mvnw.cmd", "package", "-pl", "message-service", "-am", "-DskipTests"]
-            os: ["windows"]
-          - command: ["sh", "-c", "./mvnw package -pl message-service -am -DskipTests"]
-            os: ["linux", "darwin"]
+          - command: ["../mvnw", "package", "-pl", "message-service", "-am", "-DskipTests"]
+            os: [darwin, linux]
+          - command: [".\\mvnw.cmd", "package", "-pl", "message-service", "-am", "-DskipTests"]
+            os: [windows]
     - image: frontend
       context: frontend
       docker:
