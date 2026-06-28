@@ -41,7 +41,7 @@ possesses none of the "keys" required to open them.
     * `POST /ack`: Clients send an ACK after successfully decrypting a sender key. The server deletes the corresponding
       encrypted sender key from PostgreSQL to prevent re-delivery.
 
-### C. Message Service
+### Message Service
 
 * **Responsibility:** Temporarily store encrypted message to support offline delivery and multi-device sync.
 * **Storage:** PostgreSQL with a "store and delete" pattern. Redis for real-time message delivery notifications.
@@ -61,5 +61,15 @@ possesses none of the "keys" required to open them.
       corresponding
       message from PostgreSQL to prevent re-delivery.
     * `GET /message/fetch` Clients fetch all pending messages for their device.
+
+### History Service (p2p)
+
+* **Responsibility:** Facilitate peer-to-peer retrieval of message history between devices.
+* Uses a peerjs-server for WebRTC.
+* Clients are identified by their device UUIDs. A device can request message history from another device by establishing
+  a connection through the peerjs-server. The first thing sent over the connection is a cryptographic challenge to
+  verify the identity of the requesting device. The challenge is a random string that the requesting device must sign
+  with its private key. If the signature is valid, the connection is established, else it is rejected immediately. One a
+  verified connection is established the data is encrypted end-to-end, using the same keys as regular messages.
 
 ---

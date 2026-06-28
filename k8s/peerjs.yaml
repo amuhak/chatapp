@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: peerjs-server
+spec:
+  replicas: 1 # Strictly 1 to avoid the Pub/Sub problem
+  selector:
+    matchLabels:
+      app: peerjs-server
+  template:
+    metadata:
+      labels:
+        app: peerjs-server
+    spec:
+      containers:
+      - name: peerjs-server
+        image: peerjs/peerjs-server:latest
+        args: ["--port", "9000", "--path", "/"]
+        ports:
+        - containerPort: 9000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: peerjs-service
+spec:
+  selector:
+    app: peerjs-server
+  ports:
+    - protocol: TCP
+      port: 9000
+      targetPort: 9000

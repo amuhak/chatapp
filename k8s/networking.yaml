@@ -8,8 +8,7 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
   rules:
-    - host: localhost
-      http:
+    - http:
         paths:
           - path: /api/identity(/|$)(.*)
             pathType: ImplementationSpecific
@@ -32,6 +31,13 @@ spec:
                 name: message-service
                 port:
                   number: 80
+          - path: /peerjs(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: peerjs-service
+                port:
+                  number: 9000
           - path: /()(.*)
             pathType: ImplementationSpecific
             backend:
