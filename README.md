@@ -1,11 +1,10 @@
-## 1. System Overview: The "Zero-Knowledge" Engine
+## 1. The idea: Zero Knowledge
 
-The core philosophy is **Server Blindness**. The backend manages the delivery of "envelopes" (encrypted blobs) but
-possesses none of the "keys" required to open them.
+The backend should be physically incapable of every revealing data sent by the user
 
-* **Primary Stack:** Java 21+ with **Quarkus** (JVM/JIT mode for peak throughput).
+* **Primary Stack:** Java 26 with **Quarkus**.
 * **Infrastructure:** Kubernetes
-* **Communication:** WebSockets for real-time delivery; REST for identity/history.
+* **Communication:** Peer to Peer for persistent history.  
 
 ---
 
