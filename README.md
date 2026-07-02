@@ -27,7 +27,7 @@ The backend should be physically incapable of every revealing data sent by the u
 ### Delivery Service
 
 * **Responsibility:** Facilitates public key discovery and fan out of encrypted sender keys to recipient devices.
-* **Relies on:** Redis Pub/Sub for real-time key delivery and PostgreSQL for temporary storage of pending keys.
+* **Relies on:** PostgreSQL for temporary storage of pending keys.
 
 * **Endpoints:**
     * `POST /asymmetric/upload`: Clients upload their public key bundles (one per device).
